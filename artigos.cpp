@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <string>
 #include <vector>
@@ -95,27 +94,77 @@ dados leDados()
 
 void leXML(string xmlpath,dados& d)
 {
-    ifstream ifs(xmlpath.c_str());
-    string xml;
-    getline(ifs,xml);
-    pesquisador pnovo;
-    artigo anovo;
+pesquisador pnovo;
     int numartigos=0;
+    CMarkup xml;
+    if (xml.Load(xmlpath)){
+       
+       xml.ResetPos();
+       xml.FindElem("CURRICULO-VITAE");
+       xml.IntoElem();
+       xml.FindElem("DADOS-GERAIS");
+       
+       pnovo.nome = xml.GetAttrib("NOME-COMPLETO");
+       
+       xml.FindElem("PRODUCAO-BIBLIOGRAFICA");
+       xml.IntoElem();
+       
+       xml.FindElem("TRABALHOS-EM-EVENTOS");
+       xml.IntoElem();
 
-    pnovo.nome="Pesq "+(d.pesquisadores.size()+'0');
-    anovo.autores.push_back(pnovo.nome);
-    anovo.tipo=1;
-    anovo.natureza=2;
-    anovo.qualis=4;
-    anovo.valor="Artigo "+(d.artigos.size()+'0');
-    d.artigos.push_back(anovo);
-    pnovo.artigos=(d.artigos.end()--);
-    d.pesquisadores.push_back(pnovo);
-    anovo.valor="Artigo "+(d.artigos.size()+'0');
-    d.artigos.push_back(anovo);
-    numartigos=2;
+       while(xml.FindElem("TRABALHO-EM-EVENTOS")){ //<TRABALHOS-EM-EVENTOS>
+           artigo anovo;
+           xml.SavePos();
+           xml.IntoElem();
+           xml.FindElem("DADOS-BASICOS-DO-TRABALHO");
+           numartigos++;
+           anovo.valor = xml.GetAttrib("TITULO-DO-TRABALHO");
+           anovo.tipo = 0;
+           anovo.qualis = 0;//tem que pegar do arquivo do moodle
+           if (xml.GetAttrib("NATUREZA").compare("COMPLETO")==0)
+              anovo.natureza = 0;
+           else if (xml.GetAttrib("NATUREZA").compare("EXTENDIDO")==0)
+              anovo.natureza = 1;
+           else if (xml.GetAttrib("NATUREZA").compare("RESUMO")==0)
+              anovo.natureza = 2;
+           while(xml.FindElem("AUTORES")) //Autores do artigo
+                anovo.autores.push_back(xml.GetAttrib("NOME-COMPLETO-DO-AUTOR"));
+           d.artigos.push_back(anovo);
+           pnovo.artigos=(d.artigos.end()--);
+           xml.RestorePos();
+       }
+       
+       xml.OutOfElem();
+       xml.FindElem("ARTIGOS-PUBLICADOS");
+       xml.IntoElem();
 
-    escrevePesquisador(pnovo,numartigos);
+       while(xml.FindElem("ARTIGO-PUBLICADO")){ //<ARTIGOS-PUBLICADOS>
+           artigo anovo;
+           xml.SavePos();
+           xml.IntoElem();
+           xml.FindElem("DADOS-BASICOS-DO-ARTIGO");
+           numartigos++;
+           anovo.valor = xml.GetAttrib("TITULO-DO-ARTIGO"); 
+           anovo.tipo = 1;
+           anovo.qualis = 0;//tem que pegar do arquivo do moodle
+           if (xml.GetAttrib("NATUREZA").compare("COMPLETO")==0)
+               anovo.natureza = 0;
+           else if (xml.GetAttrib("NATUREZA").compare("EXTENDIDO")==0)
+               anovo.natureza = 1;
+           else if (xml.GetAttrib("NATUREZA").compare("RESUMO")==0)
+               anovo.natureza = 2;
+           while(xml.FindElem("AUTORES")) //Autores do artigo
+               anovo.autores.push_back(xml.GetAttrib("NOME-COMPLETO-DO-AUTOR"));
+           d.artigos.push_back(anovo);
+           pnovo.artigos=(d.artigos.end()--);
+           xml.RestorePos();
+       }
+       
+       d.pesquisadores.push_back(pnovo);
+       //escrevePesquisador(pnovo,numartigos);
+    }else{
+          printf("Problema na leitura do xml");
+    }
 }
 
 int main()
